@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeFlow - Thalassemia Blood Donation Network</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN for 3D Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Noto Nastaliq Urdu -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#e11d48',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        },
+                        dark: {
+                            800: '#111827',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        urdu: ['"Noto Nastaliq Urdu"', 'Inter', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Smooth transitions & custom scrollbar */
+        * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+
+        body.lang-ur {
+            font-family: 'Noto Nastaliq Urdu', 'Inter', serif;
+            direction: rtl;
+        }
+
+        /* 3D Canvas Background fixed placement */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism utility */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card-hover:hover {
+            transform: translateY(-4px);
+            border-color: rgba(225, 29, 72, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(225, 29, 72, 0.3);
+        }
+
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e11d48;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #be123c;
+        }
+
+        /* Heartbeat Animation for Critical Needs */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            14% { transform: scale(1.15); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.15); }
+            70% { transform: scale(1); }
+        }
+        .pulse-heart {
+            animation: heartbeat 2s infinite ease-in-out;
+        }
+
+        /* RTL tweaks for Urdu support */
+        body.lang-ur .rtl-flip {
+            transform: scaleX(-1);
+        }
+        
+        body.lang-ur .urdu-leading {
+            line-height: 2.2 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100 flex flex-col justify-between relative selection:bg-brand-600 selection:text-white">
+
+    <!-- 3D Canvas Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+
+        <header class="sticky top-0 z-50 glass-nav">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-20">
+                    
+                    <!-- Logo & Brand Name -->
+                    <div class="flex items-center space-x-3 rtl:space-x-reverse cursor-pointer" onclick="showTab('home')">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shadow-lg shadow-brand-600/30 pulse-heart">
+                            <i class="fa-solid font-bold fa-droplet text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <span class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-brand-500" data-key="appName">
+                                LifeFlow
+                            </span>
+                            <span class="block text-xs text-brand-400 font-medium tracking-wide" data-key="appSub">
+                                Thalassemia Blood Support
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Links (Desktop) -->
+                    <nav class="hidden md:flex items-center space-x-1 rtl:space-x-reverse bg-gray-900/60 p-1.5 rounded-2xl border border-gray-800">
+                        <button onclick="showTab('home')" id="nav-home" class="nav-btn px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-white bg-brand-600 shadow-md">
+                            <i class="fa-solid fa-house mr-2 rtl:ml-2"></i><span data-key="navHome">Home</span>
+                        </button>
+                        <button onclick="showTab('donors')" id="nav-donors" class="nav-btn px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-gray-300 hover:text-white hover:bg-gray-800/80">
+                            <i class="fa-solid fa-magnifying-glass-location mr-2 rtl:ml-2"></i><span data-key="navFind">Find Donors</span>
+                        </button>
+                        <button onclick="showTab('register')" id="nav-register" class="nav-btn px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-gray-300 hover:text-white hover:bg-gray-800/80">
+                            <i class="fa-solid fa-user-plus mr-2 rtl:ml-2"></i><span data-key="navRegister">Register as Donor</span>
+                        </button>
+                        <button onclick="showTab('requests')" id="nav-requests" class="nav-btn px-5 py-2.5 rounded-xl font-medium text-sm transition-all text-gray-300 hover:text-white hover:bg-gray-800/80">
+                            <i class="fa-solid fa-hand-holding-medical mr-2 rtl:ml-2"></i><span data-key="navRequests">Urgent Requests</span>
+                        </button>
+                    </nav>
+
+                    <!-- Language Switcher & Call to Action -->
+                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                        <!-- Language Toggle Button -->
+                        <button id="lang-toggle-btn" onclick="toggleLanguage()" class="flex items-center space-x-2 rtl:space-x-reverse px-4 py-2 rounded-xl glass-card hover:bg-gray-800 border border-brand-500/40 text-brand-400 hover:text-white font-semibold text-sm shadow-sm hover:shadow-brand-500/20">
+                            <i class="fa-solid fa-language text-lg"></i>
+                            <span id="lang-btn-text">اردو</span>
+                        </button>
+
+                        <!-- Mobile Menu Button -->
+                        <button onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl glass-card text-gray-300 hover:text-white focus:outline-none">
+                            <i class="fa-solid fa-bars text-xl" id="menu-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Drawer Menu -->
+            <div id="mobile-menu" class="hidden md:hidden glass-nav border-t border-gray-800 px-4 pt-3 pb-6 space-y-2">
+                <button onclick="showTab('home'); toggleMobileMenu()" class="w-full text-left rtl:text-right px-4 py-3 rounded-xl font-medium text-sm text-gray-200 hover:bg-brand-600/20 hover:text-brand-400 flex items-center">
+                    <i class="fa-solid fa-house w-6"></i><span data-key="navHome">Home</span>
+                </button>
+                <button onclick="showTab('donors'); toggleMobileMenu()" class="w-full text-left rtl:text-right px-4 py-3 rounded-xl font-medium text-sm text-gray-200 hover:bg-brand-600/20 hover:text-brand-400 flex items-center">
+                    <i class="fa-solid fa-magnifying-glass-location w-6"></i><span data-key="navFind">Find Donors</span>
+                </button>
+                <button onclick="showTab('register'); toggleMobileMenu()" class="w-full text-left rtl:text-right px-4 py-3 rounded-xl font-medium text-sm text-gray-200 hover:bg-brand-600/20 hover:text-brand-400 flex items-center">
+                    <i class="fa-solid fa-user-plus w-6"></i><span data-key="navRegister">Register as Donor</span>
+                </button>
+                <button onclick="showTab('requests'); toggleMobileMenu()" class="w-full text-left rtl:text-right px-4 py-3 rounded-xl font-medium text-sm text-gray-200 hover:bg-brand-600/20 hover:text-brand-400 flex items-center">
+                    <i class="fa-solid fa-hand-holding-medical w-6"></i><span data-key="navRequests">Urgent Requests</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+            <!-- Notification Banner -->
+            <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+            <!-- ================= HOME TAB ================= -->
+            <section id="tab-home" class="tab-content block space-y-12">
+                <!-- Hero Banner -->
+                <div class="relative rounded-3xl p-8 sm:p-12 glass-card overflow-hidden border border-gray-800 shadow-2xl">
+                    <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="relative z-10 max-w-3xl space-y-6">
+                        <div class="inline-flex items-center space-x-2 rtl:space-x-reverse px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs font-semibold uppercase tracking-wider">
+                            <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                            <span data-key="heroBadge">Thalassemia Patient Network</span>
+                        </div>
+                        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight urdu-leading" data-key="heroTitle">
+                            Connecting Lifesaving Donors with Children in Urgent Need
+                        </h1>
+                        <p class="text-base sm:text-lg text-gray-300 leading-relaxed font-normal" data-key="heroSubtitle">
+                            Thalassemia patients require regular blood transfusions to survive. Find nearby registered donors instantly or register yourself to become a lifeline today.
+                        </p>
+                        
+                        <div class="flex flex-wrap gap-4 pt-2">
+                            <button onclick="showTab('donors')" class="px-7 py-3.5 rounded-2xl font-bold bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center space-x-2 rtl:space-x-reverse transition-transform hover:-translate-y-0.5">
+                                <i class="fa-solid fa-search"></i>
+                                <span data-key="btnFindHero">Find Nearby Donor</span>
+                            </button>
+                            <button onclick="showTab('register')" class="px-7 py-3.5 rounded-2xl font-bold glass-card hover:bg-gray-800 text-white border border-gray-700 flex items-center space-x-2 rtl:space-x-reverse transition-transform hover:-translate-y-0.5">
+                                <i class="fa-solid fa-heart text-brand-500"></i>
+                                <span data-key="btnRegisterHero">Register as Donor</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Statistics Counter -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="glass-card glass-card-hover rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse">
+                        <div class="w-14 h-14 rounded-2xl bg-brand-500/20 text-brand-500 flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider" data-key="statTotalDonors">Registered Donors</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-donors-count">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-card glass-card-hover rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider" data-key="statAvailable">Available Now</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-available-count">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-card glass-card-hover rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse">
+                        <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-hospital-user"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider" data-key="statUrgentNeeds">Patients Waiting</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-urgent-count">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-card glass-card-hover rounded-2xl p-6 flex items-center space-x-4 rtl:space-x-reverse">
+                        <div class="w-14 h-14 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-city"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider" data-key="statCities">Cities Covered</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-cities-count">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blood Type Quick Selector -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2" data-key="bloodTypeSearch">
+                            <i class="fa-solid fa-filter text-brand-500"></i> Quick Filter by Blood Group
+                        </h2>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" id="quick-blood-buttons">
+                        <!-- Dynamically Generated Buttons -->
+                    </div>
+                </div>
+
+                <!-- Recent Donors Preview -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2" data-key="recentDonorsTitle">
+                            <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Recently Available Donors
+                        </h2>
+                        <button onclick="showTab('donors')" class="text-brand-400 hover:text-brand-300 font-semibold text-sm flex items-center gap-1">
+                            <span data-key="viewAll">View All</span> <i class="fa-solid fa-arrow-right text-xs rtl-flip"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="home-donors-container">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= FIND DONORS TAB ================= -->
+            <section id="tab-donors" class="tab-content hidden space-y-8">
+                <!-- Search & Filter Card -->
+                <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-gray-800">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white" data-key="searchTitle">Search & Match Blood Donors</h2>
+                            <p class="text-sm text-gray-400 mt-1" data-key="searchSubtitle">Filter donors by city, location, hospital, or specific blood group</p>
+                        </div>
+                        <button onclick="resetFilters()" class="self-start md:self-auto px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i> <span data-key="resetFilter">Reset Filters</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- City Filter -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+                                <i class="fa-solid fa-city text-brand-500"></i> <span data-key="labelCity">City</span>
+                            </label>
+                            <select id="filter-city" onchange="applyFilters()" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                                <option value="ALL" data-key="allCities">All Cities</option>
+                            </select>
+                        </div>
+
+                        <!-- Blood Group Filter -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+                                <i class="fa-solid fa-vial text-brand-500"></i> <span data-key="labelBloodGroup">Blood Group</span>
+                            </label>
+                            <select id="filter-blood" onchange="applyFilters()" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                                <option value="ALL" data-key="allGroups">All Blood Groups</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Text (Hospital / Area) -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+                                <i class="fa-solid fa-location-dot text-brand-500"></i> <span data-key="labelLocation">Hospital / Area</span>
+                            </label>
+                            <input type="text" id="filter-search" oninput="applyFilters()" placeholder="e.g. Hayatabad, Civil Hospital" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none placeholder-gray-500">
+                        </div>
+
+                        <!-- Availability Status Filter -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+                                <i class="fa-solid fa-clock text-brand-500"></i> <span data-key="labelStatus">Availability</span>
+                            </label>
+                            <select id="filter-status" onchange="applyFilters()" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                                <option value="ALL" data-key="allStatus">All Statuses</option>
+                                <option value="Available" data-key="optAvailable">Available Now</option>
+                                <option value="Busy" data-key="optBusy">Recently Donated / Unavailable</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Donors Grid -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between text-sm text-gray-400">
+                        <span><span id="matching-count" class="font-bold text-white">0</span> <span data-key="donorsFound">donors match your search</span></span>
+                    </div>
+
+                    <div id="donors-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by Javascript -->
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= REGISTER DONOR TAB ================= -->
+            <section id="tab-register" class="tab-content hidden max-w-3xl mx-auto">
+                <div class="glass-card rounded-3xl p-6 sm:p-10 border border-gray-800 shadow-xl space-y-8">
+                    <div class="text-center space-y-2 border-b border-gray-800 pb-6">
+                        <div class="w-16 h-16 bg-brand-600/20 rounded-2xl flex items-center justify-center text-brand-500 text-3xl mx-auto mb-3">
+                            <i class="fa-solid fa-id-card"></i>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white" data-key="regTitle">Donor Registration</h2>
+                        <p class="text-sm text-gray-400" data-key="regSubtitle">Your small gesture can save a Thalassemia child's life. Register your details below.</p>
+                    </div>
+
+                    <form id="donor-register-form" onsubmit="handleDonorRegistration(event)" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            
+                            <!-- Donor Name -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regName">Full Name *</label>
+                                <input type="text" required id="reg-name" placeholder="e.g. Muhammad Ali" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <!-- Phone Number -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regPhone">Phone Number (WhatsApp) *</label>
+                                <input type="tel" required id="reg-phone" placeholder="03001234567" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <!-- Blood Group -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regBloodGroup">Blood Group *</label>
+                                <select required id="reg-blood" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                                    <option value="" disabled selected data-key="selectBloodGroup">Select Blood Group</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                            </div>
+
+                            <!-- City -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regCity">City *</label>
+                                <input type="text" required id="reg-city" placeholder="e.g. Peshawar, Lahore, Islamabad" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <!-- Specific Location / Hospital -->
+                            <div class="space-y-2 sm:col-span-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regLocation">Nearby Hospital / Specific Area *</label>
+                                <input type="text" required id="reg-location" placeholder="e.g. KTH Hospital, Hayatabad Phase 3" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <!-- Last Donation Date -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regLastDonation">Last Blood Donation Date (Optional)</label>
+                                <input type="date" id="reg-last-date" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <!-- Initial Availability Status -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-gray-300 block" data-key="regStatus">Current Availability *</label>
+                                <select id="reg-status" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
+                                    <option value="Available" data-key="optAvailable">Available Now</option>
+                                    <option value="Busy" data-key="optBusy">Unavailable / Recently Donated</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Terms Checkbox -->
+                        <div class="flex items-start space-x-3 rtl:space-x-reverse pt-2">
+                            <input type="checkbox" id="reg-agree" required class="mt-1 w-4 h-4 rounded text-brand-600 bg-gray-900 border-gray-700 focus:ring-brand-500">
+                            <label for="reg-agree" class="text-xs text-gray-400" data-key="regConsent">
+                                I voluntarily agree to allow my contact details to be visible to Thalassemia patients and hospitals in urgent need of blood.
+                            </label>
+                        </div>
+
+                        <button type="submit" class="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center space-x-2 rtl:space-x-reverse transition-transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-check-circle text-lg"></i>
+                            <span data-key="btnSubmitReg">Complete Registration</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+
+            <!-- ================= URGENT REQUESTS TAB ================= -->
+            <section id="tab-requests" class="tab-content hidden space-y-8">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-card p-6 rounded-3xl border border-gray-800">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2" data-key="urgentTitle">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Urgent Patient Requests
+                        </h2>
+                        <p class="text-sm text-gray-400 mt-1" data-key="urgentSubtitle">Thalassemia patients currently requiring immediate transfusion</p>
+                    </div>
+                    <button onclick="openUrgentModal()" class="px-5 py-3 rounded-xl font-bold bg-amber-600 hover:bg-amber-500 text-white text-sm shadow-lg shadow-amber-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span data-key="postRequestBtn">Post Urgent Request</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="urgent-requests-container">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+        </main>
+
+
+        <!-- Footer -->
+        <footer class="glass-nav mt-12 border-t border-gray-800 text-xs text-gray-400 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                    <i class="fa-solid fa-droplet text-brand-500"></i>
+                    <span class="font-medium text-gray-300">LifeFlow - Thalassemia Welfare Portal</span>
+                </div>
+                <p data-key="footerText">Dedicated to helping children fighting Thalassemia across Pakistan.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Create Urgent Request Modal -->
+    <div id="urgent-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="glass-card max-w-lg w-full rounded-3xl p-6 sm:p-8 space-y-6 border border-gray-800">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+                <h3 class="text-xl font-bold text-white" data-key="modalUrgentTitle">Post Emergency Request</h3>
+                <button onclick="closeUrgentModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form onsubmit="handlePostUrgentRequest(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 block mb-1" data-key="modalPatientName">Child / Patient Name *</label>
+                    <input type="text" id="urg-name" required placeholder="e.g. Zainab (Age 7)" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-300 block mb-1" data-key="regBloodGroup">Blood Group *</label>
+                        <select id="urg-blood" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                            <option value="O-">O-</option>
+                            <option value="B+">B+</option>
+                            <option value="A+">A+</option>
+                            <option value="AB+">AB+</option>
+                            <option value="A-">A-</option>
+                            <option value="B-">B-</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-300 block mb-1" data-key="regCity">City *</label>
+                        <input type="text" id="urg-city" required placeholder="e.g. Peshawar" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 block mb-1" data-key="regLocation">Hospital Name *</label>
+                    <input type="text" id="urg-hospital" required placeholder="e.g. Rehman Medical Institute" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 block mb-1" data-key="regPhone">Attendant Phone Number *</label>
+                    <input type="tel" id="urg-phone" required placeholder="03009876543" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeUrgentModal()" class="w-1/2 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm font-semibold text-gray-300" data-key="btnCancel">Cancel</button>
+                    <button type="submit" class="w-1/2 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-sm font-semibold text-white shadow-lg shadow-amber-600/30" data-key="btnPost">Publish Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // ================= LANGUAGE DICTIONARY (English & Urdu) =================
+        const translations = {
+            en: {
+                appName: "LifeFlow",
+                appSub: "Thalassemia Blood Support",
+                navHome: "Home",
+                navFind: "Find Donors",
+                navRegister: "Register as Donor",
+                navRequests: "Urgent Requests",
+                heroBadge: "Thalassemia Patient Support Network",
+                heroTitle: "Connecting Lifesaving Blood Donors with Children in Urgent Need",
+                heroSubtitle: "Children with Thalassemia require lifelong blood transfusions. Easily find nearby active donors or register yourself to save a young life today.",
+                btnFindHero: "Find Nearby Donor",
+                btnRegisterHero: "Register as Donor",
+                statTotalDonors: "Registered Donors",
+                statAvailable: "Available Now",
+                statUrgentNeeds: "Patients Waiting",
+                statCities: "Cities Covered",
+                bloodTypeSearch: "Quick Filter by Blood Group",
+                recentDonorsTitle: "Recently Available Donors",
+                viewAll: "View All",
+                searchTitle: "Search & Match Blood Donors",
+                searchSubtitle: "Filter donors by city, hospital area, or specific blood group",
+                resetFilter: "Reset Filters",
+                labelCity: "City",
+                allCities: "All Cities",
+                labelBloodGroup: "Blood Group",
+                allGroups: "All Blood Groups",
+                labelLocation: "Hospital / Area",
+                labelStatus: "Availability",
+                allStatus: "All Statuses",
+                optAvailable: "Available Now",
+                optBusy: "Recently Donated / Busy",
+                donorsFound: "donors match your search criteria",
+                regTitle: "Donor Registration",
+                regSubtitle: "Your selfless donation offers hope to Thalassemia patients.",
+                regName: "Full Name *",
+                regPhone: "Phone Number (WhatsApp) *",
+                regBloodGroup: "Blood Group *",
+                selectBloodGroup: "Select Blood Group",
+                regCity: "City *",
+                regLocation: "Nearby Hospital / Specific Area *",
+                regLastDonation: "Last Blood Donation Date (Optional)",
+                regStatus: "Current Availability *",
+                regConsent: "I voluntarily agree to allow my contact details to be visible to Thalassemia patients and hospitals in urgent need.",
+                btnSubmitReg: "Complete Registration",
+                urgentTitle: "Urgent Patient Requests",
+                urgentSubtitle: "Thalassemia patients requiring immediate transfusions",
+                postRequestBtn: "Post Urgent Request",
+                footerText: "Dedicated to helping children fighting Thalassemia across Pakistan.",
+                modalUrgentTitle: "Post Emergency Blood Request",
+                modalPatientName: "Child / Patient Name *",
+                btnCancel: "Cancel",
+                btnPost: "Publish Request",
+                btnCall: "Call Now",
+                btnDelete: "Delete",
+                btnMarkDone: "Mark Fulfilled",
+                statusAvailableTag: "Available",
+                statusBusyTag: "Unavailable",
+                locationNearHospital: "Near / Hospital:",
+                lastDonatedOn: "Last Donated:",
+                noDonorsMatch: "No donors match your search criteria. Try clearing filters or searching another city."
+            },
+            ur: {
+                appName: "لائف فلو",
+                appSub: "تھیلیسیمیا بلڈ ڈونیشن نیٹ ورک",
+                navHome: "ہوم پیج",
+                navFind: "ڈونر تلاش کریں",
+                navRegister: "ڈونر رجسٹریشن",
+                navRequests: "ہنگامی ضرورت",
+                heroBadge: "تھیلیسیمیا بچوں کی امدادی ویب سائٹ",
+                heroTitle: "تھیلیسیمیا کے بچوں کے لیے فوری بلڈ ڈونر تلاش کریں",
+                heroSubtitle: "تھیلیسیمیا کے مریض بچوں کو مسلسل خون کی ضرورت ہوتی ہے۔ اپنے نزدیک موجود ڈونر تلاش کریں یا خود رجسٹر ہو کر کسی معصوم کی جان بچائیں۔",
+                btnFindHero: "قریب ترین ڈونر ڈھونڈیں",
+                btnRegisterHero: "ڈونر رجسٹر کریں",
+                statTotalDonors: "کل رجسٹرڈ ڈونرز",
+                statAvailable: "ابھی دستیاب ڈونرز",
+                statUrgentNeeds: "منتظر مریض بچے",
+                statCities: "احاطہ شدہ شہر",
+                bloodTypeSearch: "بلڈ گروپ کے لحاظ سے تلاش کریں",
+                recentDonorsTitle: "حالیہ دستیاب ڈونرز",
+                viewAll: "سب دیکھیں",
+                searchTitle: "ڈونر کی تلاش اور لوکیشن فلٹر",
+                searchSubtitle: "شہر، ہسپتال یا بلڈ گروپ کی بنیاد پر ڈونر تلاش کریں",
+                resetFilter: "فلٹر ختم کریں",
+                labelCity: "شہر",
+                allCities: "تمام شہر",
+                labelBloodGroup: "بلڈ گروپ",
+                allGroups: "تمام بلڈ گروپس",
+                labelLocation: "ہسپتال / علاقہ",
+                labelStatus: "دستیابی کی حالت",
+                allStatus: "تمام حالات",
+                optAvailable: "دستیاب ہے",
+                optBusy: "خون دے چکا ہے / مصروف",
+                donorsFound: "ڈونرز آپ کی تلاش کے مطابق ملے",
+                regTitle: "ڈونر کی رجسٹریشن",
+                regSubtitle: "آپ کا ایک عطیہ کسی تھیلیسیمیا کے بچے کو زندگی دے سکتا ہے۔",
+                regName: "پورا نام *",
+                regPhone: "فون نمبر (واٹس ایپ) *",
+                regBloodGroup: "بلڈ گروپ *",
+                selectBloodGroup: "بلڈ گروپ منتخب کریں",
+                regCity: "شہر *",
+                regLocation: "قریبی ہسپتال یا مخصوص علاقہ *",
+                regLastDonation: "آخری بار خون دینے کی تاریخ (اختیاری)",
+                regStatus: "موجودہ دستیابی *",
+                regConsent: "میں رضا کارانہ طور پر تھیلیسیمیا کے مریضوں اور ہسپتالوں کے لیے اپنی معلومات فراہم کرنے کی تصدیق کرتا ہوں۔",
+                btnSubmitReg: "رجسٹریشن مکمل کریں",
+                urgentTitle: "ہنگامی مریضوں کی درخواستیں",
+                urgentSubtitle: "وہ بچے جنہیں فوراً خون کی اشد ضرورت ہے",
+                postRequestBtn: "ہنگامی ضرورت کا اندراج کریں",
+                footerText: "پاکستان بھر کے تھیلیسیمیا مریض بچوں کی خدمت کے لیے وقف۔",
+                modalUrgentTitle: "خون کی ہنگامی ضرورت درج کریں",
+                modalPatientName: "مریض بچے کا نام *",
+                btnCancel: "منسوخ کریں",
+                btnPost: "درخواست شائع کریں",
+                btnCall: "کال کریں",
+                btnDelete: "حذف کریں",
+                btnMarkDone: "مکمل ہو گیا",
+                statusAvailableTag: "دستیاب",
+                statusBusyTag: "غیر دستیاب",
+                locationNearHospital: "قریبی ہسپتال:",
+                lastDonatedOn: "آخری عطیہ:",
+                noDonorsMatch: "کوئی ڈونر نہیں ملا۔ برائے مہربانی فلٹر تبدیل کریں یا دوسرا شہر منتخب کریں۔"
+            }
+        };
+
+        // Current Active Language
+        let currentLang = 'en';
+
+        // Initial Sample Data (Mock Donors & Urgent Needs)
+        const initialDonors = [
+            { id: '1', name: 'Zubair Khan', phone: '03005912345', blood: 'O-', city: 'Peshawar', location: 'KTH Hospital / Hayatabad', status: 'Available', lastDate: '2025-11-10' },
+            { id: '2', name: 'Usman Ali', phone: '03129876543', blood: 'B+', city: 'Peshawar', location: 'LRH Hospital / City', status: 'Available', lastDate: '2025-08-15' },
+            { id: '3', name: 'Hamza Farooq', phone: '03334567890', blood: 'A-', city: 'Islamabad', location: 'PIMS Hospital / G-8', status: 'Available', lastDate: '2025-12-01' },
+            { id: '4', name: 'Bilal Ahmed', phone: '03451122334', blood: 'AB+', city: 'Lahore', location: 'Jinnah Hospital / Allama Iqbal Town', status: 'Busy', lastDate: '2026-02-14' },
+            { id: '5', name: 'Dr. Saad Malik', phone: '03017788990', blood: 'O+', city: 'Peshawar', location: 'North West General Hospital', status: 'Available', lastDate: '2025-10-05' },
+            { id: '6', name: 'Shahid Iqbal', phone: '03215544332', blood: 'A+', city: 'Rawalpindi', location: 'Holy Family Hospital', status: 'Available', lastDate: '2025-09-20' }
+        ];
+
+        const initialRequests = [
+            { id: 'req1', name: 'Ahmad (Age 5)', blood: 'O-', city: 'Peshawar', hospital: 'Hayatabad Medical Complex (HMC)', phone: '03001112233', date: 'Today' },
+            { id: 'req2', name: 'Maryam (Age 8)', blood: 'A-', city: 'Islamabad', hospital: 'PIMS Hospital', phone: '03124445566', date: 'Today' }
+        ];
+
+        // Global State Variables
+        let donors = JSON.parse(localStorage.getItem('lifeflow_donors')) || initialDonors;
+        let urgentRequests = JSON.parse(localStorage.getItem('lifeflow_requests')) || initialRequests;
+
+        // Save to LocalStorage
+        function saveData() {
+            localStorage.setItem('lifeflow_donors', JSON.stringify(donors));
+            localStorage.setItem('lifeflow_requests', JSON.stringify(urgentRequests));
+            updateStats();
+        }
+
+        // Toggle Language Switcher Function
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ur' : 'en';
+            document.body.classList.toggle('lang-ur', currentLang === 'ur');
+            document.documentElement.setAttribute('dir', currentLang === 'ur' ? 'rtl' : 'ltr');
+
+            // Update Toggle Button Text
+            document.getElementById('lang-btn-text').innerText = currentLang === 'en' ? 'اردو' : 'English';
+
+            // Apply translations to key DOM elements
+            document.querySelectorAll('[data-key]').forEach(elem => {
+                const key = elem.getAttribute('data-key');
+                if (translations[currentLang][key]) {
+                    elem.innerText = translations[currentLang][key];
+                }
+            });
+
+            // Re-render dynamic elements
+            renderQuickBloodButtons();
+            populateCityOptions();
+            applyFilters();
+            renderUrgentRequests();
+            renderHomeDonors();
+        }
+
+        // Tab Switching Logic
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Update Nav styles
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-gray-300');
+            });
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                activeNav.classList.remove('text-gray-300');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Populate Unique Cities in Filter Dropdown
+        function populateCityOptions() {
+            const citySelect = document.getElementById('filter-city');
+            const currentSelected = citySelect.value;
+            const cities = Array.from(new Set(donors.map(d => d.city))).sort();
+
+            citySelect.innerHTML = `<option value="ALL">${translations[currentLang].allCities}</option>`;
+            cities.forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.innerText = city;
+                citySelect.appendChild(opt);
+            });
+            citySelect.value = currentSelected;
+        }
+
+        // Render Blood Group Quick Filter Buttons
+        function renderQuickBloodButtons() {
+            const groups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+            const container = document.getElementById('quick-blood-buttons');
+            container.innerHTML = '';
+
+            groups.forEach(group => {
+                const count = donors.filter(d => d.blood === group && d.status === 'Available').length;
+                const btn = document.createElement('button');
+                btn.onclick = () => {
+                    showTab('donors');
+                    document.getElementById('filter-blood').value = group;
+                    applyFilters();
+                };
+                btn.className = `glass-card glass-card-hover p-3 rounded-2xl flex flex-col items-center justify-center border border-gray-800 transition-all hover:border-brand-500`;
+                btn.innerHTML = `
+                    <span class="text-xl font-extrabold text-brand-500">${group}</span>
+                    <span class="text-xs text-gray-400 mt-1">${count} ${translations[currentLang].statusAvailableTag}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // Update Statistics Counters
+        function updateStats() {
+            document.getElementById('stat-donors-count').innerText = donors.length;
+            document.getElementById('stat-available-count').innerText = donors.filter(d => d.status === 'Available').length;
+            document.getElementById('stat-urgent-count').innerText = urgentRequests.length;
+            document.getElementById('stat-cities-count').innerText = new Set(donors.map(d => d.city)).size;
+        }
+
+        // Filter and Render Donors List
+        function applyFilters() {
+            const cityFilter = document.getElementById('filter-city').value;
+            const bloodFilter = document.getElementById('filter-blood').value;
+            const searchFilter = document.getElementById('filter-search').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('filter-status').value;
+
+            const filtered = donors.filter(donor => {
+                const matchCity = (cityFilter === 'ALL' || donor.city === cityFilter);
+                const matchBlood = (bloodFilter === 'ALL' || donor.blood === bloodFilter);
+                const matchStatus = (statusFilter === 'ALL' || donor.status === statusFilter);
+                const matchSearch = donor.location.toLowerCase().includes(searchFilter) || donor.name.toLowerCase().includes(searchFilter);
+                return matchCity && matchBlood && matchStatus && matchSearch;
+            });
+
+            document.getElementById('matching-count').innerText = filtered.length;
+            renderDonorsGrid(filtered, 'donors-grid-container');
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-city').value = 'ALL';
+            document.getElementById('filter-blood').value = 'ALL';
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-status').value = 'ALL';
+            applyFilters();
+        }
+
+        // Render Home Screen Donors
+        function renderHomeDonors() {
+            const availableDonors = donors.filter(d => d.status === 'Available').slice(0, 6);
+            renderDonorsGrid(availableDonors, 'home-donors-container');
+        }
+
+        // Generic Render Function for Donors
+        function renderDonorsGrid(donorList, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (donorList.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 glass-card rounded-3xl p-8 border border-gray-800">
+                        <i class="fa-solid fa-user-slash text-4xl text-gray-600 mb-3 block"></i>
+                        <p class="text-gray-400 text-sm">${translations[currentLang].noDonorsMatch}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            donorList.forEach(donor => {
+                const isAvailable = donor.status === 'Available';
+                const card = document.createElement('div');
+                card.className = `glass-card glass-card-hover rounded-3xl p-6 relative flex flex-col justify-between border border-gray-800`;
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Header with Blood Badge & Status -->
+                        <div class="flex items-start justify-between gap-2 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-brand-600/30">
+                                    ${donor.blood}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-base">${donor.name}</h4>
+                                    <p class="text-xs text-gray-400"><i class="fa-solid fa-location-dot text-brand-500 mr-1 rtl:ml-1"></i>${donor.city}</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${isAvailable ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-gray-800 text-gray-400 border border-gray-700'}">
+                                ${isAvailable ? translations[currentLang].statusAvailableTag : translations[currentLang].statusBusyTag}
+                            </span>
+                        </div>
+
+                        <!-- Location & Details -->
+                        <div class="space-y-2 text-xs text-gray-300 my-4 bg-gray-900/60 p-3 rounded-xl border border-gray-800/80">
+                            <p class="flex items-center gap-2">
+                                <i class="fa-solid fa-hospital text-brand-400"></i>
+                                <span><strong>${translations[currentLang].locationNearHospital}</strong> ${donor.location}</span>
+                            </p>
+                            ${donor.lastDate ? `
+                                <p class="flex items-center gap-2 text-gray-400">
+                                    <i class="fa-solid fa-calendar-check text-gray-500"></i>
+                                    <span>${translations[currentLang].lastDonatedOn} ${donor.lastDate}</span>
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Actions Footer -->
+                    <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-800/60 mt-2">
+                        <!-- Direct Call -->
+                        <a href="tel:${donor.phone}" class="flex-1 py-2.5 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-colors">
+                            <i class="fa-solid fa-phone"></i>
+                            <span>${translations[currentLang].btnCall}</span>
+                        </a>
+
+                        <!-- Toggle Availability Status -->
+                        <button onclick="toggleDonorStatus('${donor.id}')" title="Toggle Status" class="p-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs border border-gray-700">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+
+                        <!-- Delete Donor -->
+                        <button onclick="deleteDonor('${donor.id}')" title="Delete Entry" class="p-2.5 rounded-xl bg-gray-800 hover:bg-rose-900/60 text-gray-400 hover:text-rose-400 text-xs border border-gray-700">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Add New Donor Registration
+        function handleDonorRegistration(event) {
+            event.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const blood = document.getElementById('reg-blood').value;
+            const city = document.getElementById('reg-city').value.trim();
+            const location = document.getElementById('reg-location').value.trim();
+            const lastDate = document.getElementById('reg-last-date').value;
+            const status = document.getElementById('reg-status').value;
+
+            const newDonor = {
+                id: 'donor_' + Date.now(),
+                name,
+                phone,
+                blood,
+                city,
+                location,
+                status,
+                lastDate
+            };
+
+            donors.unshift(newDonor);
+            saveData();
+            populateCityOptions();
+            renderQuickBloodButtons();
+            renderHomeDonors();
+
+            document.getElementById('donor-register-form').reset();
+            showToast(currentLang === 'en' ? 'Donor successfully registered!' : 'ڈونر کی رجسٹریشن کامیابی سے ہو گئی!');
+            showTab('donors');
+        }
+
+        // Toggle Donor Availability
+        function toggleDonorStatus(id) {
+            const donor = donors.find(d => d.id === id);
+            if (donor) {
+                donor.status = donor.status === 'Available' ? 'Busy' : 'Available';
+                saveData();
+                renderQuickBloodButtons();
+                applyFilters();
+                renderHomeDonors();
+                showToast(currentLang === 'en' ? 'Donor status updated' : 'ڈونر کی حالت اپ ڈیٹ ہو گئی');
+            }
+        }
+
+        // Delete Donor Entry
+        function deleteDonor(id) {
+            donors = donors.filter(d => d.id !== id);
+            saveData();
+            populateCityOptions();
+            renderQuickBloodButtons();
+            applyFilters();
+            renderHomeDonors();
+            showToast(currentLang === 'en' ? 'Donor record removed' : 'ڈونر کا ریکارڈر ڈیلیٹ ہو گیا');
+        }
+
+        // Render Urgent Requests
+        function renderUrgentRequests() {
+            const container = document.getElementById('urgent-requests-container');
+            container.innerHTML = '';
+
+            urgentRequests.forEach(req => {
+                const card = document.createElement('div');
+                card.className = `glass-card glass-card-hover rounded-3xl p-6 border border-amber-500/30 relative flex flex-col justify-between`;
+                card.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 animate-pulse">
+                                <span class="w-2 h-2 rounded-full bg-amber-400"></span> Urgent Transfusion
+                            </span>
+                            <span class="text-xs text-gray-500">${req.date}</span>
+                        </div>
+
+                        <div>
+                            <h4 class="text-xl font-extrabold text-white">${req.name}</h4>
+                            <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-hospital text-amber-500 mr-1"></i>${req.hospital}, ${req.city}</p>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-900/80 border border-gray-800">
+                            <span class="text-xs text-gray-400">Blood Required:</span>
+                            <span class="text-2xl font-black text-brand-500">${req.blood}</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 mt-4 border-t border-gray-800 flex items-center justify-between gap-2">
+                        <a href="tel:${req.phone}" class="flex-1 py-3 rounded-xl font-bold bg-amber-600 hover:bg-amber-500 text-white text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20">
+                            <i class="fa-solid fa-phone"></i>
+                            <span>${translations[currentLang].btnCall} Attendant</span>
+                        </a>
+                        <button onclick="deleteUrgentRequest('${req.id}')" class="p-3 rounded-xl bg-gray-800 hover:bg-rose-900/60 text-gray-400 hover:text-rose-400 text-xs border border-gray-700">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openUrgentModal() {
+            document.getElementById('urgent-modal').classList.remove('hidden');
+        }
+
+        function closeUrgentModal() {
+            document.getElementById('urgent-modal').classList.add('hidden');
+        }
+
+        function handlePostUrgentRequest(event) {
+            event.preventDefault();
+            const name = document.getElementById('urg-name').value.trim();
+            const blood = document.getElementById('urg-blood').value;
+            const city = document.getElementById('urg-city').value.trim();
+            const hospital = document.getElementById('urg-hospital').value.trim();
+            const phone = document.getElementById('urg-phone').value.trim();
+
+            const newReq = {
+                id: 'req_' + Date.now(),
+                name,
+                blood,
+                city,
+                hospital,
+                phone,
+                date: 'Just Now'
+            };
+
+            urgentRequests.unshift(newReq);
+            saveData();
+            renderUrgentRequests();
+            closeUrgentModal();
+            showToast(currentLang === 'en' ? 'Urgent request posted!' : 'ہنگامی درخواست شامل کر دی گئی ہے!');
+        }
+
+        function deleteUrgentRequest(id) {
+            urgentRequests = urgentRequests.filter(r => r.id !== id);
+            saveData();
+            renderUrgentRequests();
+            showToast(currentLang === 'en' ? 'Request removed' : 'درخواست ڈیلیٹ ہو گئی');
+        }
+
+        // Toast Notification System
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `glass-card px-5 py-3.5 rounded-2xl border border-brand-500/50 text-white text-sm font-semibold shadow-2xl flex items-center gap-3 transform translate-y-4 opacity-0 transition-all duration-300 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-brand-500 text-lg"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+
+        function init3DBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const scene = new THREE.Scene();
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xe11d48, 2, 100);
+            pointLight.position.set(10, 20, 15);
+            scene.add(pointLight);
+
+            // Generate Floating Red Blood Cells Geometry (Toruses/Spheres)
+            const cellGroup = new THREE.Group();
+            const geometry = new THREE.TorusGeometry(0.8, 0.4, 16, 32);
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xbe123c,
+                emissive: 0x4c0519,
+                shininess: 80,
+                transparent: true,
+                opacity: 0.65
+            });
+
+            const cells = [];
+            const count = 45;
+
+            for (let i = 0; i < count; i++) {
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 60,
+                    (Math.random() - 0.5) * 60,
+                    (Math.random() - 0.5) * 40
+                );
+                mesh.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    0
+                );
+                const scale = Math.random() * 0.8 + 0.4;
+                mesh.scale.set(scale, scale, scale * 0.5);
+
+                mesh.userData = {
+                    rotSpeedX: (Math.random() - 0.5) * 0.015,
+                    rotSpeedY: (Math.random() - 0.5) * 0.015,
+                    velocityY: Math.random() * 0.02 + 0.005
+                };
+
+                cellGroup.add(mesh);
+                cells.push(mesh);
+            }
+
+            scene.add(cellGroup);
+
+            // Mouse Interactive Movement
+            let mouseX = 0;
+            let mouseY = 0;
+            window.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+                mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+            });
+
+            // Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+
+                cells.forEach(cell => {
+                    cell.rotation.x += cell.userData.rotSpeedX;
+                    cell.rotation.y += cell.userData.rotSpeedY;
+                    cell.position.y += cell.userData.velocityY;
+
+                    if (cell.position.y > 30) {
+                        cell.position.y = -30;
+                    }
+                });
+
+                // Subtle Camera movement based on mouse
+                camera.position.x += (mouseX * 3 - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY * 3 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Resize Handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // Initialize Application
+        window.onload = function() {
+            init3DBackground();
+            populateCityOptions();
+            renderQuickBloodButtons();
+            updateStats();
+            applyFilters();
+            renderHomeDonors();
+            renderUrgentRequests();
+        };
+    </script>
+</body>
+</html>
